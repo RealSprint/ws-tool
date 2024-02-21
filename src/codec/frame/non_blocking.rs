@@ -320,6 +320,17 @@ impl<S: AsyncWrite + Unpin> AsyncFrameSend<S> {
             .map_err(WsError::IOError)
     }
 
+    /// send a read frame, **this method will not check validation of frame and do not fragment**
+    pub async fn send_frozen_owned_frame(
+        &mut self,
+        frame: FrozenOwnedFrame,
+    ) -> Result<(), WsError> {
+        self.write_state
+            .async_send_frozen_owned_frame(&mut self.stream, frame)
+            .await
+            .map_err(WsError::IOError)
+    }
+
     /// flush to ensure all data are send
     pub async fn flush(&mut self) -> Result<(), WsError> {
         self.stream.flush().await.map_err(WsError::IOError)
