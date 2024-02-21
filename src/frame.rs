@@ -1,5 +1,5 @@
 use crate::codec::apply_mask;
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 use std::fmt::Debug;
 
 /// Defines the interpretation of the "Payload data".  If an unknown
@@ -505,6 +505,23 @@ pub struct OwnedFrame {
 pub struct FrozenOwnedFrame {
     pub(crate) header: Header,
     pub(crate) payload: Bytes,
+}
+
+impl FrozenOwnedFrame {
+    /// construct new owned frame
+    #[inline]
+    pub fn new(code: OpCode, mask: impl Into<Option<[u8; 4]>>, data: &[u8]) -> Self {
+        let header = Header::new(true, false, false, false, mask, code, data.len() as u64);
+        let mut payload = BytesMut::with_capacity(data.len());
+        payload.extend_from_slice(data);
+        if let Some(mask) = header.masking_key() {
+            apply_mask(&mut payload, mask);
+        }
+        Self {
+            header,
+            payload: payload.freeze(),
+        }
+    }
 }
 
 impl From<OwnedFrame> for FrozenOwnedFrame {
