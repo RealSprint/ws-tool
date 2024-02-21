@@ -1,4 +1,3 @@
-use http;
 use crate::{
     codec::{apply_mask, FrameConfig, Split},
     errors::{ProtocolError, WsError},
@@ -6,6 +5,7 @@ use crate::{
     protocol::standard_handshake_resp_check,
 };
 use bytes::BytesMut;
+use http;
 use rand::random;
 use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 

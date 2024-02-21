@@ -1,5 +1,5 @@
-use http;
 use core::slice;
+use http;
 use std::{
     ffi::{c_char, c_int, c_uint},
     mem::{self, transmute, MaybeUninit},

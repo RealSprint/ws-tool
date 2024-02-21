@@ -1,5 +1,5 @@
-use http;
 use bytes::BytesMut;
+use http;
 use std::{io::IoSlice, ops::Range};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
@@ -7,7 +7,7 @@ use super::{apply_mask, FrameConfig, FrameReadState, FrameWriteState};
 use crate::{
     codec::Split,
     errors::WsError,
-    frame::{ctor_header, header_len, OpCode, OwnedFrame, SimplifiedHeader},
+    frame::{ctor_header, header_len, FrozenOwnedFrame, OpCode, OwnedFrame, SimplifiedHeader},
     protocol::standard_handshake_resp_check,
 };
 
@@ -258,6 +258,15 @@ impl FrameWriteState {
         stream.write_all(&frame.header().0).await?;
         stream.write_all(frame.payload()).await
     }
+
+    pub(crate) async fn async_send_frozen_owned_frame<S: AsyncWrite + Unpin>(
+        &mut self,
+        stream: &mut S,
+        frame: FrozenOwnedFrame,
+    ) -> IOResult<()> {
+        stream.write_all(&frame.header.0).await?;
+        stream.write_all(&frame.payload).await
+    }
 }
 
 /// recv part of websocket stream
@@ -385,6 +394,17 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AsyncFrameCodec<S> {
     pub async fn send_owned_frame(&mut self, frame: OwnedFrame) -> Result<(), WsError> {
         self.write_state
             .async_send_owned_frame(&mut self.stream, frame)
+            .await
+            .map_err(WsError::IOError)
+    }
+
+    /// send a read frame, **this method will not check validation of frame and do not fragment**
+    pub async fn send_frozen_owned_frame(
+        &mut self,
+        frame: FrozenOwnedFrame,
+    ) -> Result<(), WsError> {
+        self.write_state
+            .async_send_frozen_owned_frame(&mut self.stream, frame)
             .await
             .map_err(WsError::IOError)
     }
